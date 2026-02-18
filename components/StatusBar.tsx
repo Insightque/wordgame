@@ -7,10 +7,14 @@ interface StatusBarProps {
   maxActionPoints: number;
   completedCount: number;
   totalCount: number;
+  totalCoins: number;
   onReset: () => void;
 }
 
-const StatusBar: React.FC<StatusBarProps> = ({ levelLabel, levelColor, actionPoints, maxActionPoints, completedCount, totalCount, onReset }) => {
+const StatusBar: React.FC<StatusBarProps> = ({ 
+  levelLabel, levelColor, actionPoints, maxActionPoints, 
+  completedCount, totalCount, totalCoins, onReset 
+}) => {
   
   const progressPct = Math.max(0, (actionPoints / maxActionPoints) * 100);
   const barColor = actionPoints < 10 ? 'bg-red-400' : 'bg-cute-dark-green';
@@ -18,13 +22,19 @@ const StatusBar: React.FC<StatusBarProps> = ({ levelLabel, levelColor, actionPoi
   return (
     <div className="w-full bg-white/80 backdrop-blur-md border-b-4 border-cute-pink/30 shadow-sm p-2 z-[100] font-jua flex items-center justify-between gap-3 h-14">
       
-      {/* Left: Menu Btn */}
-      <button 
-        onClick={onReset}
-        className="w-10 h-10 bg-cute-pink text-white text-lg rounded-full shadow-sm hover:scale-105 transition-transform flex items-center justify-center"
-      >
-        🏠
-      </button>
+      {/* Left: Menu Btn & Coins */}
+      <div className="flex items-center gap-2">
+        <button 
+          onClick={onReset}
+          className="w-10 h-10 bg-cute-pink text-white text-lg rounded-full shadow-sm hover:scale-105 transition-transform flex items-center justify-center"
+        >
+          🏠
+        </button>
+        <div className="bg-yellow-100 px-2 py-1 rounded-full border-2 border-yellow-200 flex items-center gap-1 shadow-inner">
+          <span className="text-sm">🪙</span>
+          <span className="text-xs font-bold text-yellow-700">{totalCoins}</span>
+        </div>
+      </div>
 
       {/* Center: Progress Bar */}
       <div className="flex-1 max-w-xs flex flex-col justify-center">

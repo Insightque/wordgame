@@ -7,17 +7,17 @@ interface CardProps {
   index: number;
   isSelected?: boolean;
   isShaking?: boolean;
-  isTop?: boolean; // New prop to determine layout
+  isHinted?: boolean;
+  isTop?: boolean; 
   onClick: () => void;
   onDragStart?: (e: React.DragEvent) => void;
-  // Added Touch Handler
   onTouchStart?: (e: React.TouchEvent) => void; 
   draggable?: boolean;
   style?: React.CSSProperties;
   className?: string;
 }
 
-const Card: React.FC<CardProps> = ({ card, isSelected, isShaking, isTop = false, onClick, onDragStart, onTouchStart, draggable, style, className = '' }) => {
+const Card: React.FC<CardProps> = ({ card, isSelected, isShaking, isHinted, isTop = false, onClick, onDragStart, onTouchStart, draggable, style, className = '' }) => {
   const categoryInfo = ALL_CATEGORIES.find(c => c.id === card.category);
   const isMaster = card.type === 'master';
   
@@ -33,7 +33,7 @@ const Card: React.FC<CardProps> = ({ card, isSelected, isShaking, isTop = false,
       }}
       draggable={draggable}
       onDragStart={onDragStart}
-      onTouchStart={onTouchStart} // Bind touch start
+      onTouchStart={onTouchStart} 
       style={style}
       className={`
         relative w-full aspect-[3/4] rounded-xl transition-all duration-200
@@ -42,17 +42,25 @@ const Card: React.FC<CardProps> = ({ card, isSelected, isShaking, isTop = false,
         ${isShaking ? 'animate-shake ring-2 ring-red-400 z-50' : ''}
         ${card.isFaceUp ? 'shadow-md' : 'shadow-sm'}
         ${className}
-        touch-none /* Crucial for custom touch drag */
+        touch-none 
       `}
     >
+      {/* Hint Bubble */}
+      {isHinted && !isMaster && (
+        <div className="absolute top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-yellow-400/80 backdrop-blur-[1px] animate-in zoom-in duration-300">
+          <div className="bg-white px-2 py-1 rounded-full shadow-lg border-2 border-yellow-500 flex flex-col items-center">
+            <span className="text-xl leading-none">{catEmoji}</span>
+            <span className="text-[9px] font-bold text-slate-800 leading-tight">{catLabel}</span>
+          </div>
+        </div>
+      )}
+
       {card.isFaceUp ? (
         isMaster ? (
-          // --- MASTER CARD (Target Category) ---
           <div 
             className="w-full h-full flex flex-col bg-white border-2 border-dashed relative overflow-hidden"
             style={{ borderColor: catColor }}
           >
-             {/* Header */}
              <div 
                className="w-full py-1 flex items-center justify-center px-1 border-b-2 border-dashed"
                style={{ backgroundColor: `${catColor}40`, borderColor: `${catColor}80` }}
@@ -61,26 +69,19 @@ const Card: React.FC<CardProps> = ({ card, isSelected, isShaking, isTop = false,
                   {catLabel}
                 </span>
              </div>
-
-             {/* Content */}
              <div className="flex-1 flex flex-col items-center justify-center -mt-1 bg-white">
                 <div className="text-3xl animate-float filter drop-shadow-sm">{catEmoji}</div>
              </div>
           </div>
         ) : (
-          // --- WORD CARD (Neutral / Hidden Category) ---
           <div 
             className={`w-full h-full bg-white relative overflow-hidden flex flex-col ${isTop ? 'border-2' : 'border'} border-slate-300`}
           >
-             {/* Consistent Pattern for ALL Word Cards */}
              <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[radial-gradient(#64748b_1px,transparent_1px)] [background-size:10px_10px]"></div>
-             
-             {/* Generic Watermark */}
              <div className="absolute -bottom-4 -right-4 text-6xl opacity-[0.03] pointer-events-none transform -rotate-12">
                🧩
              </div>
 
-             {/* LAYOUT 1: STACKED (Covered) - Optimized for visibility */}
              {!isTop && (
                <>
                  <div className="h-1.5 w-full bg-slate-100 border-b border-slate-200 shrink-0"></div>
@@ -92,7 +93,6 @@ const Card: React.FC<CardProps> = ({ card, isSelected, isShaking, isTop = false,
                </>
              )}
 
-             {/* LAYOUT 2: TOP (Fully Visible) */}
              {isTop && (
                <div className="w-full h-full flex flex-col items-center justify-center relative p-2">
                  <div className="absolute top-1.5 left-1.5 w-1.5 h-1.5 rounded-full bg-slate-200"></div>
@@ -106,7 +106,6 @@ const Card: React.FC<CardProps> = ({ card, isSelected, isShaking, isTop = false,
           </div>
         )
       ) : (
-        // --- CARD BACK ---
         <div className="w-full h-full bg-cute-pink rounded-xl border-2 border-white flex items-center justify-center relative shadow-inner group">
             <div className="absolute inset-1.5 border border-white/60 rounded-lg border-dashed"></div>
             <div className="text-white text-xl opacity-90 group-hover:scale-110 transition-transform duration-300">✿</div>

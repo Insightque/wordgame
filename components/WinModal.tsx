@@ -28,11 +28,19 @@ const WinModal: React.FC<WinModalProps> = ({ gameStatus, score, onNextLevel, onR
           {isVictory ? '성공했어요!' : '아쉬워요!'}
         </h2>
         
-        <p className="mb-8 text-gray-500 text-lg leading-relaxed">
-          {isVictory 
-            ? `모든 짝꿍을 찾았습니다!\n남은 턴: ${score}` 
-            : '턴이 부족해서 실패했어요.\n다시 도전해볼까요?'}
-        </p>
+        <div className="mb-8 flex flex-col items-center gap-1">
+          <p className="text-gray-500 text-lg leading-relaxed whitespace-pre-line">
+            {isVictory 
+              ? `모든 짝꿍을 찾았습니다!\n남은 턴: ${score}` 
+              : '턴이 부족해서 실패했어요.\n다시 도전해볼까요?'}
+          </p>
+          {isVictory && (
+            <div className="mt-2 bg-yellow-400 text-white px-4 py-1 rounded-full font-bold flex items-center gap-1 animate-in zoom-in slide-in-from-top-4 duration-500 delay-300">
+              <span className="text-xl">🪙</span>
+              <span>+{score} 획득!</span>
+            </div>
+          )}
+        </div>
 
         <div className="w-full flex gap-3">
           <button 

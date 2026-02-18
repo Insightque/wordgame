@@ -2,6 +2,7 @@ import { ALL_CATEGORIES, LEVEL_SETTINGS } from '../constants';
 import { CardData, ColumnData } from '../types';
 
 const STORAGE_KEY = 'word_spider_max_level';
+const COIN_KEY = 'word_spider_coins';
 
 // --- Persistence ---
 export const getSavedMaxLevel = (): number => {
@@ -18,13 +19,25 @@ export const saveMaxLevel = (level: number) => {
   }
 };
 
+export const getSavedCoins = (): number => {
+  if (typeof window === 'undefined') return 0;
+  const saved = localStorage.getItem(COIN_KEY);
+  return saved ? parseInt(saved, 10) : 0;
+};
+
+export const saveCoins = (amount: number) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(COIN_KEY, amount.toString());
+};
+
 export const resetGameProgress = () => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEY, '1');
+  localStorage.setItem(COIN_KEY, '0');
 };
 
 // --- Audio & Haptic ---
-export const playSound = (type: 'pop' | 'tap' | 'error' | 'success' | 'shuffle' | 'win') => {
+export const playSound = (type: 'pop' | 'tap' | 'error' | 'success' | 'shuffle' | 'win' | 'coin') => {
   const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
   if (!AudioContext) return;
 
@@ -37,6 +50,10 @@ export const playSound = (type: 'pop' | 'tap' | 'error' | 'success' | 'shuffle' 
   const now = ctx.currentTime;
 
   switch (type) {
+    case 'coin':
+      osc.type = 'sine'; osc.frequency.setValueAtTime(900, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+      gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc.start(now); osc.stop(now + 0.2); break;
     case 'pop':
       osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
       gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);

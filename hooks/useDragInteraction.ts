@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { GameState, CardData, Selection, DragState } from '../types';
 import { isValidTableauMove, isValidFoundationMove, playSound, triggerHaptic } from '../utils/gameUtils';
 
@@ -71,9 +71,6 @@ export const useDragInteraction = (
     playSound('pop'); triggerHaptic('light');
     e.dataTransfer.setData('app/json', JSON.stringify({ location: loc, colIndex: col, cardIndex: idx }));
     setSelection({ location: loc, colIndex: col, cardIndex: idx });
-    
-    // Optional: Hide native drag image if we were using custom, but we rely on native for mouse
-    // For mouse drag, browser handles "ghosting".
   };
 
   const handleDrop = (e: React.DragEvent, targetLoc: 'tableau'|'foundation', targetIdx: number) => {
@@ -123,7 +120,10 @@ export const useDragInteraction = (
 
   useEffect(() => {
     if (!dragState) return;
-    const move = (e: TouchEvent) => { e.preventDefault(); setDragState(p => p ? { ...p, currentX: e.touches[0].clientX, currentY: e.touches[0].clientY } : null); };
+    const move = (e: TouchEvent) => { 
+      e.preventDefault(); 
+      setDragState(p => p ? { ...p, currentX: e.touches[0].clientX, currentY: e.touches[0].clientY } : null); 
+    };
     const end = (e: TouchEvent) => {
       const touch = e.changedTouches[0];
       const dropZone = document.elementsFromPoint(touch.clientX, touch.clientY).find(el => el.classList.contains('drop-zone'));
@@ -142,7 +142,10 @@ export const useDragInteraction = (
     };
     window.addEventListener('touchmove', move, { passive: false });
     window.addEventListener('touchend', end);
-    return () => { window.removeEventListener('touchmove', move); window.removeEventListener('touchend', end); };
+    return () => { 
+      window.removeEventListener('touchmove', move); 
+      window.removeEventListener('touchend', end); 
+    };
   }, [dragState, gameState, executeMove, triggerShake]);
 
   return { selection, setSelection, shakingCardId, dragState, handleCardClick, handleFoundationClick, handleDragStart, handleDrop, handleTouchStart };

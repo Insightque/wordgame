@@ -1,19 +1,23 @@
 import { useState, useCallback, useEffect } from 'react';
 import { GameState, CardData, ColumnData } from '../types';
 import { ALL_CATEGORIES, TOTAL_COLUMNS } from '../constants';
-import { generateId, shuffle, getLevelSettings, playSound, triggerHaptic, getSavedMaxLevel, saveMaxLevel, resetGameProgress } from '../utils/gameUtils';
+import { generateId, shuffle, getLevelSettings, playSound, triggerHaptic, getSavedMaxLevel, saveMaxLevel, resetGameProgress, getSavedCoins, saveCoins } from '../utils/gameUtils';
 
 export const useGameEngine = () => {
   const [maxReachedLevel, setMaxReachedLevel] = useState(1);
+  const [totalCoins, setTotalCoins] = useState(0);
   const [gameState, setGameState] = useState<GameState>({
     level: 1, columns: [], foundation: [], stock: [], waste: [],
     actionPoints: 0, maxActionPoints: 0, gameStatus: 'intro'
   });
   const [totalWinCount, setTotalWinCount] = useState(0);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [hintedCardId, setHintedCardId] = useState<string | null>(null);
 
   // Load saved progress on mount
   useEffect(() => {
     setMaxReachedLevel(getSavedMaxLevel());
+    setTotalCoins(getSavedCoins());
   }, []);
 
   const startGame = useCallback((level: number) => {
@@ -24,13 +28,9 @@ export const useGameEngine = () => {
     let deck: CardData[] = [];
     let winCount = 0;
     shuffledCats.forEach(cat => {
-      // Master Card
       deck.push({ id: generateId(), word: cat.label, category: cat.id, type: 'master', isFaceUp: false });
       winCount++; 
-      
-      // Randomly select 5 words from the category
       const selectedWords = shuffle(cat.words).slice(0, 5);
-      
       selectedWords.forEach(word => {
         deck.push({ id: generateId(), word: word, category: cat.id, type: 'word', isFaceUp: false });
         winCount++;
@@ -48,6 +48,8 @@ export const useGameEngine = () => {
     newColumns.forEach(col => { if (col.length > 0) col[col.length - 1].isFaceUp = true; });
 
     setTotalWinCount(winCount);
+    setHintsUsed(0);
+    setHintedCardId(null);
     setGameState({
       level, columns: newColumns, foundation: Array.from({ length: settings.categories }, () => []), 
       stock: deck.slice(cardIdx), waste: [], actionPoints: settings.turns, maxActionPoints: settings.turns, gameStatus: 'playing'
@@ -57,8 +59,38 @@ export const useGameEngine = () => {
   const resetAllData = useCallback(() => {
     resetGameProgress();
     setMaxReachedLevel(1);
-    playSound('shuffle'); // Just a feedback sound
+    setTotalCoins(0);
+    playSound('shuffle');
   }, []);
+
+  const useHint = useCallback((selection: any) => {
+    if (!selection || hintsUsed >= 3 || totalCoins < 20) {
+      playSound('error');
+      return;
+    }
+
+    let targetCard: CardData | null = null;
+    if (selection.location === 'tableau') {
+      targetCard = gameState.columns[selection.colIndex][selection.cardIndex];
+    } else {
+      targetCard = gameState.waste[gameState.waste.length - 1] || null;
+    }
+
+    if (targetCard) {
+      setTotalCoins(prev => {
+        const next = prev - 20;
+        saveCoins(next);
+        return next;
+      });
+      setHintsUsed(prev => prev + 1);
+      setHintedCardId(targetCard.id);
+      playSound('coin');
+      // Auto-clear hint after 3 seconds
+      setTimeout(() => setHintedCardId(null), 3000);
+    } else {
+      playSound('error');
+    }
+  }, [gameState, totalCoins, hintsUsed]);
 
   const handleStockClick = () => {
     if (gameState.gameStatus !== 'playing') return;
@@ -82,6 +114,7 @@ export const useGameEngine = () => {
 
   const executeMove = (sourceLoc: 'tableau' | 'waste', sourceColIdx: number, sourceCardIdx: number, targetLoc: 'tableau' | 'foundation', targetIdx: number) => {
     playSound('success'); triggerHaptic('success');
+    setHintedCardId(null); // Clear hint on any move
     setGameState(prev => {
       const newColumns = prev.columns.map(c => [...c]);
       const newFoundation = prev.foundation.map(c => [...c]);
@@ -116,13 +149,25 @@ export const useGameEngine = () => {
     if (gameState.gameStatus === 'won') {
       playSound('win');
       triggerHaptic('success');
+      
+      // Save Max Level
       const nextLevel = gameState.level + 1;
       if (nextLevel > maxReachedLevel) {
         saveMaxLevel(nextLevel);
         setMaxReachedLevel(nextLevel);
       }
-    }
-  }, [gameState.gameStatus, gameState.level, maxReachedLevel]);
 
-  return { gameState, setGameState, startGame, handleStockClick, executeMove, totalWinCount, maxReachedLevel, resetAllData };
+      // Add Coins (Remaining turns = coins)
+      setTotalCoins(prev => {
+        const next = prev + gameState.actionPoints;
+        saveCoins(next);
+        return next;
+      });
+    }
+  }, [gameState.gameStatus, gameState.level, maxReachedLevel, gameState.actionPoints]);
+
+  return { 
+    gameState, setGameState, startGame, handleStockClick, executeMove, 
+    totalWinCount, maxReachedLevel, resetAllData, totalCoins, useHint, hintsUsed, hintedCardId 
+  };
 };
