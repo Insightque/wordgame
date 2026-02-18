@@ -1,14 +1,20 @@
 import { useState, useCallback, useEffect } from 'react';
 import { GameState, CardData, ColumnData } from '../types';
 import { ALL_CATEGORIES, TOTAL_COLUMNS } from '../constants';
-import { generateId, shuffle, getLevelSettings, playSound, triggerHaptic } from '../utils/gameUtils';
+import { generateId, shuffle, getLevelSettings, playSound, triggerHaptic, getSavedMaxLevel, saveMaxLevel, resetGameProgress } from '../utils/gameUtils';
 
 export const useGameEngine = () => {
+  const [maxReachedLevel, setMaxReachedLevel] = useState(1);
   const [gameState, setGameState] = useState<GameState>({
     level: 1, columns: [], foundation: [], stock: [], waste: [],
     actionPoints: 0, maxActionPoints: 0, gameStatus: 'intro'
   });
   const [totalWinCount, setTotalWinCount] = useState(0);
+
+  // Load saved progress on mount
+  useEffect(() => {
+    setMaxReachedLevel(getSavedMaxLevel());
+  }, []);
 
   const startGame = useCallback((level: number) => {
     playSound('shuffle');
@@ -46,6 +52,12 @@ export const useGameEngine = () => {
       level, columns: newColumns, foundation: Array.from({ length: settings.categories }, () => []), 
       stock: deck.slice(cardIdx), waste: [], actionPoints: settings.turns, maxActionPoints: settings.turns, gameStatus: 'playing'
     });
+  }, []);
+
+  const resetAllData = useCallback(() => {
+    resetGameProgress();
+    setMaxReachedLevel(1);
+    playSound('shuffle'); // Just a feedback sound
   }, []);
 
   const handleStockClick = () => {
@@ -99,9 +111,18 @@ export const useGameEngine = () => {
     });
   };
 
+  // Check for win and save progress
   useEffect(() => {
-    if (gameState.gameStatus === 'won') { playSound('win'); triggerHaptic('success'); }
-  }, [gameState.gameStatus]);
+    if (gameState.gameStatus === 'won') {
+      playSound('win');
+      triggerHaptic('success');
+      const nextLevel = gameState.level + 1;
+      if (nextLevel > maxReachedLevel) {
+        saveMaxLevel(nextLevel);
+        setMaxReachedLevel(nextLevel);
+      }
+    }
+  }, [gameState.gameStatus, gameState.level, maxReachedLevel]);
 
-  return { gameState, setGameState, startGame, handleStockClick, executeMove, totalWinCount };
+  return { gameState, setGameState, startGame, handleStockClick, executeMove, totalWinCount, maxReachedLevel, resetAllData };
 };

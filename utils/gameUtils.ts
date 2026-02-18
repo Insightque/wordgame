@@ -1,6 +1,28 @@
 import { ALL_CATEGORIES, LEVEL_SETTINGS } from '../constants';
 import { CardData, ColumnData } from '../types';
 
+const STORAGE_KEY = 'word_spider_max_level';
+
+// --- Persistence ---
+export const getSavedMaxLevel = (): number => {
+  if (typeof window === 'undefined') return 1;
+  const saved = localStorage.getItem(STORAGE_KEY);
+  return saved ? parseInt(saved, 10) : 1;
+};
+
+export const saveMaxLevel = (level: number) => {
+  if (typeof window === 'undefined') return;
+  const currentMax = getSavedMaxLevel();
+  if (level > currentMax) {
+    localStorage.setItem(STORAGE_KEY, level.toString());
+  }
+};
+
+export const resetGameProgress = () => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEY, '1');
+};
+
 // --- Audio & Haptic ---
 export const playSound = (type: 'pop' | 'tap' | 'error' | 'success' | 'shuffle' | 'win') => {
   const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
