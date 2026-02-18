@@ -1,0 +1,5 @@
+{
+  "name": "단어 스파이더 (Word Spider)",
+  "description": "같은 카테고리의 단어를 연결하여 제거하는 스파이더 솔리테어 방식의 퍼즐 게임입니다.",
+  "requestFramePermissions": []
+}
