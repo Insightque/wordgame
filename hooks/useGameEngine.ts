@@ -8,7 +8,8 @@ export const useGameEngine = () => {
   const [totalCoins, setTotalCoins] = useState(0);
   const [gameState, setGameState] = useState<GameState>({
     level: 1, columns: [], foundation: [], stock: [], waste: [],
-    actionPoints: 0, maxActionPoints: 0, gameStatus: 'intro'
+    actionPoints: 0, maxActionPoints: 0, gameStatus: 'intro',
+    categoryTargets: {}
   });
   const [totalWinCount, setTotalWinCount] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
@@ -27,21 +28,37 @@ export const useGameEngine = () => {
     
     let deck: CardData[] = [];
     let winCount = 0;
+    const categoryTargets: Record<string, number> = {};
+
     shuffledCats.forEach(cat => {
+      // 1 Master Card
       deck.push({ id: generateId(), word: cat.label, category: cat.id, type: 'master', isFaceUp: false });
-      winCount++; 
-      const selectedWords = shuffle(cat.words).slice(0, 5);
+      
+      // 난이도를 고려한 랜덤 단어 수 결정 (3~8개)
+      // 레벨이 높을수록 기본 단어 수가 늘어나도록 설계
+      const baseMin = 3;
+      const levelBonus = Math.floor(level / 8); // 8레벨마다 기본 최소 단어수 1증가 (최대 5까지)
+      const currentMin = Math.min(5, baseMin + levelBonus);
+      const currentMax = Math.min(8, currentMin + 3);
+      
+      const wordCount = Math.floor(Math.random() * (currentMax - currentMin + 1)) + currentMin;
+      
+      const selectedWords = shuffle(cat.words).slice(0, wordCount);
       selectedWords.forEach(word => {
         deck.push({ id: generateId(), word: word, category: cat.id, type: 'word', isFaceUp: false });
-        winCount++;
       });
+
+      const totalForCat = 1 + wordCount; // 마스터 카드 1장 포함
+      winCount += totalForCat;
+      categoryTargets[cat.id] = totalForCat;
     });
 
     deck = shuffle(deck);
     const newColumns: ColumnData[] = Array.from({ length: TOTAL_COLUMNS }, () => []);
     let cardIdx = 0;
-    const tableauSize = Math.floor(deck.length * 0.6); 
     
+    // 전체 카드의 60% 정도를 필드에 배치
+    const tableauSize = Math.floor(deck.length * 0.6); 
     for (let i = 0; i < tableauSize; i++) {
       newColumns[i % TOTAL_COLUMNS].push(deck[cardIdx++]);
     }
@@ -51,8 +68,15 @@ export const useGameEngine = () => {
     setHintsUsed(0);
     setHintedCardId(null);
     setGameState({
-      level, columns: newColumns, foundation: Array.from({ length: settings.categories }, () => []), 
-      stock: deck.slice(cardIdx), waste: [], actionPoints: settings.turns, maxActionPoints: settings.turns, gameStatus: 'playing'
+      level, 
+      columns: newColumns, 
+      foundation: Array.from({ length: settings.categories }, () => []), 
+      stock: deck.slice(cardIdx), 
+      waste: [], 
+      actionPoints: settings.turns, 
+      maxActionPoints: settings.turns, 
+      gameStatus: 'playing',
+      categoryTargets
     });
   }, []);
 
@@ -85,7 +109,6 @@ export const useGameEngine = () => {
       setHintsUsed(prev => prev + 1);
       setHintedCardId(targetCard.id);
       playSound('coin');
-      // Auto-clear hint after 3 seconds
       setTimeout(() => setHintedCardId(null), 3000);
     } else {
       playSound('error');
@@ -114,7 +137,7 @@ export const useGameEngine = () => {
 
   const executeMove = (sourceLoc: 'tableau' | 'waste', sourceColIdx: number, sourceCardIdx: number, targetLoc: 'tableau' | 'foundation', targetIdx: number) => {
     playSound('success'); triggerHaptic('success');
-    setHintedCardId(null); // Clear hint on any move
+    setHintedCardId(null);
     setGameState(prev => {
       const newColumns = prev.columns.map(c => [...c]);
       const newFoundation = prev.foundation.map(c => [...c]);
@@ -144,20 +167,17 @@ export const useGameEngine = () => {
     });
   };
 
-  // Check for win and save progress
   useEffect(() => {
     if (gameState.gameStatus === 'won') {
       playSound('win');
       triggerHaptic('success');
       
-      // Save Max Level
       const nextLevel = gameState.level + 1;
       if (nextLevel > maxReachedLevel) {
         saveMaxLevel(nextLevel);
         setMaxReachedLevel(nextLevel);
       }
 
-      // Add Coins (Remaining turns = coins)
       setTotalCoins(prev => {
         const next = prev + gameState.actionPoints;
         saveCoins(next);

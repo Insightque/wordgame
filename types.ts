@@ -1,4 +1,3 @@
-
 export type CardType = 'master' | 'word';
 
 export interface CardData {
@@ -21,6 +20,7 @@ export interface GameState {
   actionPoints: number; // Remaining moves
   maxActionPoints: number; // For progress bar
   gameStatus: 'intro' | 'playing' | 'won' | 'lost';
+  categoryTargets?: Record<string, number>; // Maps category ID to total cards (1 master + N words)
 }
 
 export interface Selection {

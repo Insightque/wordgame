@@ -8,18 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@19.0.0",
-        "react-dom": "https://esm.sh/react-dom@19.0.0",
-        "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-        "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
-        "react/": "https://esm.sh/react@19.0.0/",
-        "react-dom/": "https://esm.sh/react-dom@19.0.0/"
-      }
-    }
-    </script>
     <script>
       tailwind.config = {
         theme: {
@@ -56,15 +44,16 @@
     <style>
       html, body {
         height: 100%;
-        overflow: hidden;
+        overflow: hidden; /* Prevent body scroll */
       }
       body {
         background-color: #C0E4F1;
         font-family: 'Jua', sans-serif;
         user-select: none;
         -webkit-user-select: none;
-        touch-action: none;
+        touch-action: none; /* Disable browser handling of gestures */
       }
+      /* Cute Cloud Pattern */
       .bg-clouds {
         background-color: #C0E4F1;
         background-image: 
@@ -74,9 +63,11 @@
         background-position: 0 0, 30px 30px;
         opacity: 0.6;
       }
+      /* Cute Grass at Bottom */
       .bg-grass {
         background: linear-gradient(to top, #Dbfac0 0%, #Dbfac0 40%, transparent 100%);
       }
+      /* Hide Scrollbar but allow scroll */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
@@ -85,9 +76,17 @@
         scrollbar-width: none;
       }
     </style>
-  </head>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/"
+  }
+}
+</script>
+</head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

@@ -9,6 +9,7 @@ interface CardProps {
   isShaking?: boolean;
   isHinted?: boolean;
   isTop?: boolean; 
+  progress?: { current: number; total: number }; // 진행도 정보 추가
   onClick: () => void;
   onDragStart?: (e: React.DragEvent) => void;
   onTouchStart?: (e: React.TouchEvent) => void; 
@@ -17,7 +18,10 @@ interface CardProps {
   className?: string;
 }
 
-const Card: React.FC<CardProps> = ({ card, isSelected, isShaking, isHinted, isTop = false, onClick, onDragStart, onTouchStart, draggable, style, className = '' }) => {
+const Card: React.FC<CardProps> = ({ 
+  card, isSelected, isShaking, isHinted, isTop = false, progress, 
+  onClick, onDragStart, onTouchStart, draggable, style, className = '' 
+}) => {
   const categoryInfo = ALL_CATEGORIES.find(c => c.id === card.category);
   const isMaster = card.type === 'master';
   
@@ -69,6 +73,14 @@ const Card: React.FC<CardProps> = ({ card, isSelected, isShaking, isHinted, isTo
                   {catLabel}
                 </span>
              </div>
+             
+             {/* Progress Counter for Master Card */}
+             {progress && (
+               <div className="absolute top-7 right-1 z-10 bg-slate-800 text-white text-[8px] px-1 rounded-sm opacity-80">
+                 {progress.current}/{progress.total}
+               </div>
+             )}
+
              <div className="flex-1 flex flex-col items-center justify-center -mt-1 bg-white">
                 <div className="text-3xl animate-float filter drop-shadow-sm">{catEmoji}</div>
              </div>

@@ -17,24 +17,41 @@ const FoundationArea: React.FC<Props> = ({ gameState, selection, onDrop, onClick
         const firstCard = slot[0];
         const categoryInfo = firstCard ? ALL_CATEGORIES.find(c => c.id === firstCard.category) : null;
         
+        // Progress tracking
+        const currentCount = slot.length;
+        const targetCount = categoryInfo && gameState.categoryTargets ? gameState.categoryTargets[categoryInfo.id] : 0;
+        const isCompleted = targetCount > 0 && currentCount >= targetCount;
+
         return (
           <div 
             key={`foundation-${idx}`}
-            className={`drop-zone relative w-[22%] aspect-[3/4] rounded-xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition-all duration-500 bg-white/20 border-white/60`}
+            className={`drop-zone relative w-[22%] aspect-[3/4] rounded-xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition-all duration-500
+              ${isCompleted ? 'bg-green-100/40 border-green-400' : 'bg-white/20 border-white/60'}
+            `}
             data-location="foundation"
             data-index={idx}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => onDrop(e, 'foundation', idx)}
             onClick={() => onClick(idx)}
           >
-             {/* Persistent Category Label - Floating above the stack */}
+             {/* Persistent Category Label & Progress */}
              {categoryInfo && (
                <div 
-                className="absolute -top-6 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-1 px-2 py-0.5 rounded-t-lg bg-white/90 backdrop-blur shadow-sm border-x border-t animate-in fade-in slide-in-from-bottom-1 duration-300 scale-90 whitespace-nowrap min-w-[60px] justify-center"
-                style={{ borderColor: categoryInfo.color, color: categoryInfo.color }}
+                className={`absolute -top-7 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center animate-in fade-in slide-in-from-bottom-1 duration-300 scale-90`}
                >
-                 <span className="text-xs filter drop-shadow-sm">{categoryInfo.emoji}</span>
-                 <span className="text-[10px] font-bold text-slate-700 tracking-tighter">{categoryInfo.label}</span>
+                 {/* Progress Text */}
+                 <div className={`text-[9px] font-bold mb-0.5 px-1.5 rounded-full ${isCompleted ? 'bg-green-500 text-white' : 'bg-white/80 text-slate-500'} shadow-sm border border-slate-100`}>
+                   {currentCount} / {targetCount}
+                 </div>
+                 
+                 {/* Label */}
+                 <div 
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-t-lg bg-white/90 backdrop-blur shadow-sm border-x border-t whitespace-nowrap min-w-[60px] justify-center"
+                  style={{ borderColor: categoryInfo.color, color: categoryInfo.color }}
+                 >
+                   <span className="text-xs filter drop-shadow-sm">{categoryInfo.emoji}</span>
+                   <span className="text-[10px] font-bold text-slate-700 tracking-tighter">{categoryInfo.label}</span>
+                 </div>
                </div>
              )}
 
@@ -51,6 +68,7 @@ const FoundationArea: React.FC<Props> = ({ gameState, selection, onDrop, onClick
                  card={card}
                  index={cIdx}
                  isTop={cIdx === slot.length - 1}
+                 progress={card.type === 'master' ? { current: currentCount, total: targetCount } : undefined}
                  onClick={() => onClick(idx)}
                  style={{ 
                    position: 'absolute', 
