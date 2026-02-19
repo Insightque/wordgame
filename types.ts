@@ -14,13 +14,14 @@ export type ColumnData = CardData[];
 export interface GameState {
   level: number;
   columns: ColumnData[]; // Tableau
-  foundation: ColumnData[]; // Slots for Master Cards
+  foundation: ColumnData[]; // Slots for Master Cards (Working areas)
   stock: CardData[]; // Hidden pile
   waste: CardData[]; // Revealed pile
   actionPoints: number; // Remaining moves
   maxActionPoints: number; // For progress bar
   gameStatus: 'intro' | 'playing' | 'won' | 'lost';
   categoryTargets?: Record<string, number>; // Maps category ID to total cards (1 master + N words)
+  completedCategoriesCount: number; // Number of categories fully cleared
 }
 
 export interface Selection {

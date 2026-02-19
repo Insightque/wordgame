@@ -13,7 +13,7 @@ import { useDragInteraction } from './hooks/useDragInteraction';
 const App: React.FC = () => {
   const { 
     gameState, setGameState, startGame, handleStockClick, executeMove, 
-    totalWinCount, maxReachedLevel, resetAllData, totalCoins, useHint, hintsUsed, hintedCardId 
+    totalCategoriesInLevel, maxReachedLevel, resetAllData, totalCoins, useHint, hintsUsed, hintedCardId 
   } = useGameEngine();
   
   const { 
@@ -60,11 +60,15 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <h1 className="text-5xl md:text-6xl text-white mb-2 text-center drop-shadow-lg z-10 tracking-tight" style={{ textShadow: '2px 2px 0 #88b0c9' }}>
-          단어 스파이더
-        </h1>
+        <div className="z-10 flex flex-col items-center mb-6">
+          <span className="text-pink-500 text-xl md:text-2xl mb-1 tracking-widest bg-white/40 px-3 py-0.5 rounded-full">SOPHIA JIYU'S</span>
+          <h1 className="text-4xl md:text-6xl text-white text-center drop-shadow-lg tracking-tight" style={{ textShadow: '2px 2px 0 #88b0c9' }}>
+            단어 스파이더
+          </h1>
+        </div>
+        
         <div className="flex items-center gap-2 mb-10 z-10">
-          <p className="text-blue-600 text-lg bg-white/50 px-4 py-1 rounded-full">
+          <p className="text-blue-600 text-lg bg-white/50 px-4 py-1 rounded-full shadow-sm">
             짝꿍 카드를 찾아 정리해주세요!
           </p>
           <div className="bg-yellow-400 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md">
@@ -112,7 +116,7 @@ const App: React.FC = () => {
         <StatusBar 
           levelLabel={currentSettings.label} levelColor={currentSettings.color}
           actionPoints={gameState.actionPoints} maxActionPoints={gameState.maxActionPoints}
-          completedCount={gameState.foundation.reduce((a,c) => a + c.length, 0)} totalCount={totalWinCount}
+          completedCount={gameState.completedCategoriesCount} totalCount={totalCategoriesInLevel}
           totalCoins={totalCoins}
           onReset={() => { playSound('tap'); setGameState(prev => ({ ...prev, gameStatus: 'intro' })); }}
         />

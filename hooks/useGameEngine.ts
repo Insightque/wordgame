@@ -9,13 +9,12 @@ export const useGameEngine = () => {
   const [gameState, setGameState] = useState<GameState>({
     level: 1, columns: [], foundation: [], stock: [], waste: [],
     actionPoints: 0, maxActionPoints: 0, gameStatus: 'intro',
-    categoryTargets: {}
+    categoryTargets: {}, completedCategoriesCount: 0
   });
-  const [totalWinCount, setTotalWinCount] = useState(0);
+  const [totalCategoriesInLevel, setTotalCategoriesInLevel] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [hintedCardId, setHintedCardId] = useState<string | null>(null);
 
-  // Load saved progress on mount
   useEffect(() => {
     setMaxReachedLevel(getSavedMaxLevel());
     setTotalCoins(getSavedCoins());
@@ -25,22 +24,18 @@ export const useGameEngine = () => {
     playSound('shuffle');
     const settings = getLevelSettings(level);
     const shuffledCats = shuffle(ALL_CATEGORIES).slice(0, settings.categories);
+    setTotalCategoriesInLevel(settings.categories);
     
     let deck: CardData[] = [];
-    let winCount = 0;
     const categoryTargets: Record<string, number> = {};
 
     shuffledCats.forEach(cat => {
-      // 1 Master Card
       deck.push({ id: generateId(), word: cat.label, category: cat.id, type: 'master', isFaceUp: false });
       
-      // 난이도를 고려한 랜덤 단어 수 결정 (3~8개)
-      // 레벨이 높을수록 기본 단어 수가 늘어나도록 설계
       const baseMin = 3;
-      const levelBonus = Math.floor(level / 8); // 8레벨마다 기본 최소 단어수 1증가 (최대 5까지)
+      const levelBonus = Math.floor(level / 8);
       const currentMin = Math.min(5, baseMin + levelBonus);
       const currentMax = Math.min(8, currentMin + 3);
-      
       const wordCount = Math.floor(Math.random() * (currentMax - currentMin + 1)) + currentMin;
       
       const selectedWords = shuffle(cat.words).slice(0, wordCount);
@@ -48,35 +43,33 @@ export const useGameEngine = () => {
         deck.push({ id: generateId(), word: word, category: cat.id, type: 'word', isFaceUp: false });
       });
 
-      const totalForCat = 1 + wordCount; // 마스터 카드 1장 포함
-      winCount += totalForCat;
-      categoryTargets[cat.id] = totalForCat;
+      categoryTargets[cat.id] = 1 + wordCount;
     });
 
     deck = shuffle(deck);
     const newColumns: ColumnData[] = Array.from({ length: TOTAL_COLUMNS }, () => []);
     let cardIdx = 0;
     
-    // 전체 카드의 60% 정도를 필드에 배치
     const tableauSize = Math.floor(deck.length * 0.6); 
     for (let i = 0; i < tableauSize; i++) {
       newColumns[i % TOTAL_COLUMNS].push(deck[cardIdx++]);
     }
     newColumns.forEach(col => { if (col.length > 0) col[col.length - 1].isFaceUp = true; });
 
-    setTotalWinCount(winCount);
     setHintsUsed(0);
     setHintedCardId(null);
     setGameState({
       level, 
       columns: newColumns, 
-      foundation: Array.from({ length: settings.categories }, () => []), 
+      // 재단 슬롯은 항상 4개로 유지하여 전략적인 배치를 유도합니다.
+      foundation: Array.from({ length: 4 }, () => []), 
       stock: deck.slice(cardIdx), 
       waste: [], 
       actionPoints: settings.turns, 
       maxActionPoints: settings.turns, 
       gameStatus: 'playing',
-      categoryTargets
+      categoryTargets,
+      completedCategoriesCount: 0
     });
   }, []);
 
@@ -125,18 +118,19 @@ export const useGameEngine = () => {
         const card = newStock.pop();
         if (!card) return prev;
         card.isFaceUp = true;
-        return { ...prev, stock: newStock, waste: [...prev.waste, card], actionPoints: prev.actionPoints - 1, gameStatus: (prev.actionPoints - 1 <= 0) ? 'lost' : 'playing' };
+        const nextAP = prev.actionPoints - 1;
+        return { ...prev, stock: newStock, waste: [...prev.waste, card], actionPoints: nextAP, gameStatus: nextAP <= 0 ? 'lost' : 'playing' };
       });
     } else if (gameState.waste.length > 0) {
       setGameState(prev => {
         const newStock = [...prev.waste].reverse().map(c => ({...c, isFaceUp: false}));
-        return { ...prev, stock: newStock, waste: [], actionPoints: prev.actionPoints - 1, gameStatus: (prev.actionPoints - 1 <= 0) ? 'lost' : 'playing' };
+        const nextAP = prev.actionPoints - 1;
+        return { ...prev, stock: newStock, waste: [], actionPoints: nextAP, gameStatus: nextAP <= 0 ? 'lost' : 'playing' };
       });
     }
   };
 
   const executeMove = (sourceLoc: 'tableau' | 'waste', sourceColIdx: number, sourceCardIdx: number, targetLoc: 'tableau' | 'foundation', targetIdx: number) => {
-    playSound('success'); triggerHaptic('success');
     setHintedCardId(null);
     setGameState(prev => {
       const newColumns = prev.columns.map(c => [...c]);
@@ -154,30 +148,52 @@ export const useGameEngine = () => {
         if (card) movingCards = [card];
       }
 
-      if (targetLoc === 'tableau') newColumns[targetIdx] = [...newColumns[targetIdx], ...movingCards];
-      else newFoundation[targetIdx] = [...newFoundation[targetIdx], ...movingCards];
+      if (targetLoc === 'tableau') {
+        newColumns[targetIdx] = [...newColumns[targetIdx], ...movingCards];
+        playSound('tap');
+      } else {
+        newFoundation[targetIdx] = [...newFoundation[targetIdx], ...movingCards];
+        playSound('success');
+      }
+
+      // 완성 체크 로직
+      let nextCompletedCount = prev.completedCategoriesCount;
+      if (targetLoc === 'foundation') {
+        const catId = newFoundation[targetIdx][0].category;
+        const target = prev.categoryTargets?.[catId] || 999;
+        if (newFoundation[targetIdx].length >= target) {
+          // 카테고리 완성! 슬롯을 비우고 카운트 증가
+          newFoundation[targetIdx] = [];
+          nextCompletedCount += 1;
+          playSound('win');
+          triggerHaptic('success');
+        }
+      }
 
       let nextAP = prev.actionPoints - 1;
-      const totalCards = newFoundation.reduce((sum, col) => sum + col.length, 0);
       let nextStatus = prev.gameStatus;
-      if (totalCards >= totalWinCount) nextStatus = 'won';
+      if (nextCompletedCount >= totalCategoriesInLevel) nextStatus = 'won';
       else if (nextAP <= 0) nextStatus = 'lost';
 
-      return { ...prev, columns: newColumns, foundation: newFoundation, waste: newWaste, actionPoints: nextAP, gameStatus: nextStatus };
+      return { 
+        ...prev, 
+        columns: newColumns, 
+        foundation: newFoundation, 
+        waste: newWaste, 
+        actionPoints: nextAP, 
+        gameStatus: nextStatus,
+        completedCategoriesCount: nextCompletedCount
+      };
     });
   };
 
   useEffect(() => {
     if (gameState.gameStatus === 'won') {
-      playSound('win');
-      triggerHaptic('success');
-      
       const nextLevel = gameState.level + 1;
       if (nextLevel > maxReachedLevel) {
         saveMaxLevel(nextLevel);
         setMaxReachedLevel(nextLevel);
       }
-
       setTotalCoins(prev => {
         const next = prev + gameState.actionPoints;
         saveCoins(next);
@@ -188,6 +204,6 @@ export const useGameEngine = () => {
 
   return { 
     gameState, setGameState, startGame, handleStockClick, executeMove, 
-    totalWinCount, maxReachedLevel, resetAllData, totalCoins, useHint, hintsUsed, hintedCardId 
+    totalCategoriesInLevel, maxReachedLevel, resetAllData, totalCoins, useHint, hintsUsed, hintedCardId 
   };
 };

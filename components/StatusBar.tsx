@@ -5,8 +5,8 @@ interface StatusBarProps {
   levelColor: string;
   actionPoints: number;
   maxActionPoints: number;
-  completedCount: number;
-  totalCount: number;
+  completedCount: number; // 여기서는 완료된 카테고리 수
+  totalCount: number;     // 여기서는 전체 카테고리 수
   totalCoins: number;
   onReset: () => void;
 }
@@ -36,12 +36,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
         </div>
       </div>
 
-      {/* Center: Progress Bar */}
+      {/* Center: Progress & Categories */}
       <div className="flex-1 max-w-xs flex flex-col justify-center">
-        <div className="flex justify-between text-xs text-gray-500 mb-1 px-1">
-          <span>남은 턴</span>
+        <div className="flex justify-between text-[10px] text-gray-500 mb-0.5 px-1">
+          <span className="font-bold text-blue-500">정리 완료: {completedCount}/{totalCount}</span>
           <span className={actionPoints < 10 ? 'text-red-500 animate-pulse font-bold' : 'text-gray-600 font-bold'}>
-            {actionPoints} / {maxActionPoints}
+            턴: {actionPoints}
           </span>
         </div>
         <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden border border-gray-200">
